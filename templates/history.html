@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Medical History - AI Medical Diagnosis{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0"><i class="fas fa-history"></i> Your Medical History</h4>
+    </div>
+    <div class="card-body">
+        {% if diagnoses %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr><th>Date</th><th>Symptoms</th><th>Diagnosis</th><th>Confidence</th><th>Severity</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    {% for diag in diagnoses %}
+                    <tr>
+                        <td>{{ diag.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ diag.symptoms[:60] }}...</td>
+                        <td>{{ diag.predicted_condition or 'Not available' }}</td>
+                        <td>{{ diag.confidence_score }}%</td>
+                        <td>{{ diag.severity or 'N/A' }}</td>
+                        <td>
+                            <a href="{{ url_for('patient.view_diagnosis', id=diag.id) }}" class="btn btn-sm btn-info">View</a>
+                            <a href="{{ url_for('patient.export_pdf', id=diag.id) }}" class="btn btn-sm btn-success">PDF</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-notes-medical fa-4x text-muted mb-3"></i>
+            <h5>No medical history found</h5>
+            <p>Start your first diagnosis to build your health history.</p>
+            <a href="{{ url_for('medical_diagnosis') }}" class="btn btn-primary">Start Diagnosis</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

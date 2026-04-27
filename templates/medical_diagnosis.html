@@ -1,0 +1,240 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Medical Diagnosis - AI Medical Diagnosis{% endblock %}
+
+{% block extra_css %}
+
+<button class="btn btn-info w-100 mb-2" onclick="getPrologDiagnosis()">
+    <i class="fas fa-brain"></i> Diagnose with Prolog AI
+</button>
+
+<script>
+async function getPrologDiagnosis() {
+    if (symptoms.length === 0) {
+        alert('Please add at least one symptom');
+        return;
+    }
+    
+    document.getElementById('resultsContainer').innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div><p>Prolog AI analyzing...</p></div>';
+    
+    try {
+        const response = await fetch('/api/prolog-diagnose', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symptoms: symptoms })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            displayPrologResults(data);
+        }
+    } catch (error) {
+        alert('Error connecting to Prolog engine');
+    }
+}
+
+function displayPrologResults(data) {
+    let html = '<div class="result-item"><strong>🧠 Prolog AI Diagnosis Results</strong></div>';
+    
+    data.diagnosis.forEach(d => {
+        html += `<div class="result-item">
+                    <strong>${d.condition}</strong> 
+                    <span class="badge bg-primary">${d.confidence}% confidence</span><br>
+                    <small>Matched: ${d.matched_symptoms.join(', ')} (${d.match_count}/${d.total_symptoms})</small><br>
+                    <strong>Treatment:</strong> ${d.treatment}<br>
+                </div>`;
+    });
+    
+    document.getElementById('resultsContainer').innerHTML = html;
+}
+</script>
+<style>
+    .symptom-tag {
+        background: #667eea;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        display: inline-block;
+        margin: 5px;
+    }
+    .symptom-tag i {
+        cursor: pointer;
+        margin-left: 8px;
+    }
+    .result-item {
+        background: #f8f9fa;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+    }
+    .confidence-high { color: #22c55e; }
+    .confidence-medium { color: #f59e0b; }
+    .confidence-low { color: #ef4444; }
+    .emergency { background: #fee2e2; border-left-color: #dc2626; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-notes-medical"></i> Patient Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Enter Symptoms</label>
+                    <div class="input-group">
+                        <input type="text" id="symptomInput" class="form-control" placeholder="e.g., fever, headache, cough">
+                        <button class="btn btn-primary" onclick="addSymptom()">Add</button>
+                    </div>
+                </div>
+                
+                <div id="symptomsList" class="mb-3" style="min-height: 80px;">
+                    <p class="text-muted">No symptoms added</p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Age (years)</label>
+                    <input type="number" id="age" class="form-control" placeholder="e.g., 35">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Symptom Duration</label>
+                    <select id="duration" class="form-select">
+                        <option value="">Select duration</option>
+                        <option value="less_than_24h">Less than 24 hours</option>
+                        <option value="1_3_days">1-3 days</option>
+                        <option value="4_7_days">4-7 days</option>
+                        <option value="more_than_week">More than a week</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-success w-100 mb-2" onclick="getDiagnosis()">
+                    <i class="fas fa-stethoscope"></i> Diagnose with Prolog AI
+                </button>
+
+                <button class="btn btn-secondary w-100" onclick="clearAll()">
+                    <i class="fas fa-trash-alt"></i> Clear All
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Diagnosis Results</h5>
+            </div>
+            <div class="card-body" id="resultsContainer">
+                <p class="text-center text-muted py-5">
+                    <i class="fas fa-info-circle"></i> Add symptoms and click "Get Diagnose with Prolog AI" to see results
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let symptoms = [];
+
+function addSymptom() {
+    const input = document.getElementById('symptomInput');
+    const symptom = input.value.trim().toLowerCase();
+    if (symptom && !symptoms.includes(symptom)) {
+        symptoms.push(symptom);
+        updateSymptomsList();
+        input.value = '';
+    }
+}
+
+function removeSymptom(index) {
+    symptoms.splice(index, 1);
+    updateSymptomsList();
+}
+
+function updateSymptomsList() {
+    const container = document.getElementById('symptomsList');
+    if (symptoms.length === 0) {
+        container.innerHTML = '<p class="text-muted">No symptoms added</p>';
+        return;
+    }
+    container.innerHTML = symptoms.map((s, i) => 
+        `<span class="symptom-tag">${s} <i class="fas fa-times" onclick="removeSymptom(${i})"></i></span>`
+    ).join('');
+}
+
+function clearAll() {
+    symptoms = [];
+    updateSymptomsList();
+    document.getElementById('age').value = '';
+    document.getElementById('duration').value = '';
+    document.getElementById('resultsContainer').innerHTML = '<p class="text-center text-muted py-5"><i class="fas fa-info-circle"></i> Add symptoms and click "Get Diagnosis" to see results</p>';
+}
+
+async function getDiagnosis() {
+    if (symptoms.length === 0) {
+        alert('Please add at least one symptom');
+        return;
+    }
+    
+    document.getElementById('resultsContainer').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p>Analyzing symptoms...</p></div>';
+    
+    try {
+        const response = await fetch('/api/diagnose', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                symptoms: symptoms,
+                age: document.getElementById('age').value,
+                duration: document.getElementById('duration').value
+            })
+        });
+        const data = await response.json();
+        displayResults(data);
+    } catch (error) {
+        document.getElementById('resultsContainer').innerHTML = '<div class="alert alert-danger">Error connecting to server</div>';
+    }
+}
+
+function displayResults(data) {
+    let html = '';
+    
+    if (data.emergency_warning) {
+        html += '<div class="emergency result-item"><strong>⚠️ EMERGENCY WARNING</strong><br>Please seek immediate medical attention!</div>';
+    }
+    
+    html += `<div class="result-item"><strong>Patient Summary:</strong><br>Age: ${data.patient_info.age} | Duration: ${data.patient_info.duration} | Symptoms: ${data.patient_info.symptom_count}</div>`;
+    
+    if (data.diagnosis && data.diagnosis.length > 0) {
+        data.diagnosis.forEach(d => {
+            let confidenceClass = d.confidence >= 70 ? 'confidence-high' : (d.confidence >= 40 ? 'confidence-medium' : 'confidence-low');
+            html += `<div class="result-item">
+                        <strong>${d.condition}</strong>
+                        <span class="${confidenceClass}">(${d.confidence}% match)</span><br>
+                        <small>Matched: ${d.matched_symptoms.join(', ')} (${d.match_count}/${d.total_symptoms})</small><br>
+                        <strong>Treatment:</strong> ${d.treatment}<br>
+                        ${d.see_doctor ? '<span class="text-warning">⚠️ Consider consulting a doctor</span>' : ''}
+                    </div>`;
+        });
+    } else {
+        html += '<div class="result-item">No specific conditions matched. Monitor symptoms and consult a doctor if needed.</div>';
+    }
+    
+    html += `<div class="result-item">
+                <strong>💡 General Advice</strong><br>
+                • ${data.advice.rest}<br>
+                • ${data.advice.hydration}<br>
+                • ${data.advice.monitor}<br>
+                • ${data.advice.when_to_see_doctor}
+            </div>`;
+    
+    document.getElementById('resultsContainer').innerHTML = html;
+}
+
+document.getElementById('symptomInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') addSymptom();
+});
+</script>
+{% endblock %}

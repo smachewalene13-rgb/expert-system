@@ -1,0 +1,179 @@
+ADMIN_DASHBOARD_HTML = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard - AI Medical Diagnosis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .confidence-high { background-color: #22c55e; color: white; padding: 2px 8px; border-radius: 20px; }
+        .confidence-medium { background-color: #f59e0b; color: white; padding: 2px 8px; border-radius: 20px; }
+        .confidence-low { background-color: #ef4444; color: white; padding: 2px 8px; border-radius: 20px; }
+        .btn-delete { background-color: #dc2626; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .btn-delete:hover { background-color: #b91c1c; }
+    </style>
+</head>
+<body>
+    <!-- Simplified Navbar without duplicate text -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fas fa-hospital-user"></i> AI Medical Diagnosis</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a class="nav-link" href="/admin"><i class="fas fa-cog"></i> Admin</a>
+                <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <span class="nav-link text-light"><i class="fas fa-user-shield"></i> {{ current_user.username }}</span>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <h2><i class="fas fa-chart-line"></i> Admin Dashboard</h2>
+        <p class="text-muted">Manage users, diagnoses, and system data</p>
+        
+        <!-- Statistics Cards -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h2 class="display-4">{{ users|length }}</h2>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h2 class="display-4">{{ diagnoses|length }}</h2>
+                        <p>Total Diagnoses</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <form method="POST" action="/admin/delete-all-diagnoses" onsubmit="return confirm('Are you sure you want to delete ALL diagnoses? This cannot be undone!');">
+                            <button type="submit" class="btn btn-light btn-sm">Delete All Diagnoses</button>
+                        </form>
+                        <p class="mt-2 mb-0 small">Remove all medical records</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <form method="POST" action="/admin/delete-all-users" onsubmit="return confirm('⚠️ WARNING: This will delete ALL non-admin users! Are you sure?');">
+                            <button type="submit" class="btn btn-light btn-sm">Delete All Users</button>
+                        </form>
+                        <p class="mt-2 mb-0 small">Remove all patient accounts</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Users Table -->
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-users"></i> System Users</h5>
+                <span class="badge bg-light text-dark">{{ users|length }} total</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Registered</th>
+                                <th>Diagnoses</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td>{{ u.id }}</td>
+                                <td>{{ u.username }}</td>
+                                <td>{{ u.email }}</td>
+                                <td>
+                                    {% if u.role == 'admin' %}
+                                        <span class="badge bg-danger">Admin</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">Patient</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ format_date(u.created_at, '%Y-%m-%d') }}</td>
+                                <td>{{ u.diagnoses|length }}</td>
+                                <td>
+                                    {% if u.role != 'admin' %}
+                                        <form method="POST" action="/admin/delete-user/{{ u.id }}" style="display: inline;" onsubmit="return confirm('Delete user {{ u.username }} and all their diagnoses?');">
+                                            <button type="submit" class="btn-delete"><i class="fas fa-trash"></i> Delete</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted"><i class="fas fa-shield-alt"></i> Protected</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Diagnoses Table -->
+        <div class="card mt-4">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-stethoscope"></i> All Diagnoses Records</h5>
+                <span class="badge bg-light text-dark">{{ diagnoses|length }} total</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Patient</th>
+                                <th>Symptoms</th>
+                                <th>Diagnosis</th>
+                                <th>Confidence</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in diagnoses %}
+                            <tr>
+                                <td>{{ d.id }}</td>
+                                <td>{{ d.user.username }}</td>
+                                <td>{{ truncate_text(d.symptoms, 40) }}</td>
+                                <td>{{ d.predicted_condition or 'Pending' }}</td>
+                                <td>
+                                    {% set conf = d.confidence_score|float %}
+                                    {% if conf >= 70 %}
+                                        <span class="confidence-high">{{ conf }}%</span>
+                                    {% elif conf >= 40 %}
+                                        <span class="confidence-medium">{{ conf }}%</span>
+                                    {% else %}
+                                        <span class="confidence-low">{{ conf }}%</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ format_date(d.created_at, '%Y-%m-%d') }}</td>
+                                <td>
+                                    <form method="POST" action="/admin/delete-diagnosis/{{ d.id }}" onsubmit="return confirm('Delete this diagnosis record?');" style="display: inline;">
+                                        <button type="submit" class="btn-delete"><i class="fas fa-trash"></i> Delete</button>
+                                    </form>
+                                </table>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+'''

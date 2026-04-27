@@ -1,0 +1,16 @@
+{
+  "common_cold": {
+    "name": "Common Cold",
+    "symptoms": ["runny nose", "sneezing", "cough", "sore throat", "mild fever", "fatigue"],
+    "treatment": "Rest, fluids, over-the-counter cold medicine",
+    "urgency": "low",
+    "see_doctor": false
+  },
+  "influenza": {
+    "name": "Influenza (Flu)",
+    "symptoms": ["high fever", "body aches", "chills", "fatigue", "headache", "dry cough"],
+    "treatment": "Antiviral medication, rest, fluids, fever reducers",
+    "urgency": "medium",
+    "see_doctor": true
+  }
+}
